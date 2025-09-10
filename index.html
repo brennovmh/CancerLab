@@ -106,7 +106,6 @@
 
 <script>
   // === LISTE SUAS IMAGENS EXATAMENTE COMO ESTÃO EM /gallery ===
-  // Agora com campo opcional "note" para explicações. Use <br> para quebra de linha simples.
   const ITEMS = [
     {file:"MA.png",            title:"MA plot",        cat:"QC",      desc:"MA plot da amostra X", note:"Dispersão log-intensidade vs log-ratio. <br>Faixa central indica ausência de viés global."},
     {file:"PCA.png",           title:"PCA",            cat:"PCA",     desc:"PCA com 48 amostras",  note:"PC1 separa Condição A vs B (~35% var.). PC2 correlaciona com batch."},
@@ -117,8 +116,8 @@
     {file:"volcano_WTxT2.png", title:"Volcano WT×T2",  cat:"Volcano", desc:"DE: WT vs T2",         note:"Up em T2 concentra-se no quadrante superior direito."}
   ];
 
-  // mude este valor se substituir imagens (dribla cache do navegador/CDN)
-  const VERSION = "v=6";
+  // altere se substituir imagens (para driblar cache CDN/navegador)
+  const VERSION = "v=7";
 
   const yearEl = document.getElementById('y'); yearEl.textContent = new Date().getFullYear();
   const grid = document.getElementById('grid');
@@ -152,6 +151,7 @@
 
     for (const it of visibleList){
       const orig = baseSrc(it.file);
+
       const card = document.createElement('article');
       card.className = 'card';
 
@@ -161,72 +161,82 @@
       link.target = "_blank";
       link.rel = "noopener";
 
-      link.innerHTML = `
-        <div class="thumb-wrap">
-          <img class="thumb" loading="lazy" alt="${it.title}">
+      // elementos internos
+      const thumbWrap = document.createElement('div');
+      thumbWrap.className = 'thumb-wrap';
+
+      const img = document.createElement('img');
+      img.className = 'thumb';
+      img.loading = 'lazy';
+      img.alt = it.title;
+
+      thumbWrap.appendChild(img);
+
+      const meta = document.createElement('div');
+      meta.className = 'meta';
+      meta.innerHTML = `
+        <div>
+          <div class="title">${it.title}</div>
+          <div style="font-size:12px;color:#7f8b98">${it.desc || ''}</div>
         </div>
-        <div class="meta">
-          <div>
-            <div class="title">${it.title}</div>
-            <div style="font-size:12px;color:#7f8b98">${it.desc||''}</div>
-          </div>
-          <div class="meta-right">
-            ${it.note ? '<button type="button" class="btn-sm js-toggle-note">ver nota</button>' : ''}
-            <span class="tag">${it.cat||''}</span>
-          </div>
+        <div class="meta-right">
+          ${it.note ? '<button type="button" class="btn-sm js-toggle-note">ver nota</button>' : ''}
+          <span class="tag">${it.cat || ''}</span>
         </div>
-        <div class="warn hidden">Não encontrei <code>gallery/${it.file}</code> (tentei variações). Verifique nome/caixa.</div>
       `;
 
-      // nota (explicação) — bloco colapsável
+      const warnEl = document.createElement('div');
+      warnEl.className = 'warn hidden';
+      warnEl.innerHTML = `Não encontrei <code>gallery/${it.file}</code> (tentei variações). Verifique nome/caixa.`;
+
+      // nota (explicação)
+      let noteEl = null;
       if (it.note){
-        const note = document.createElement('div');
-        note.className = 'note';
-        note.innerHTML = `<p>${it.note}</p>`;
-        card.appendChild(note);
+        noteEl = document.createElement('div');
+        noteEl.className = 'note';
+        noteEl.innerHTML = `<p>${it.note}</p>`;
       }
 
-      const thumb = link.querySelector('img.thumb');
+      // Monta a hierarquia no DOM antes de configurar onerror
+      link.appendChild(thumbWrap);
+      link.appendChild(meta);
+      card.appendChild(link);
+      card.appendChild(warnEl);
+      if (noteEl) card.appendChild(noteEl);
+      grid.appendChild(card);
+
+      // handler de erro AGORA que está tudo no DOM
       const tries = [withV(orig), withRaw(orig), withV(baseSrc(flipExt(it.file)))];
-      thumb.dataset.try = 0;
-      thumb.onerror = () => {
-        const tIdx = parseInt(thumb.dataset.try,10);
+      img.dataset.try = 0;
+      img.onerror = () => {
+        const tIdx = parseInt(img.dataset.try, 10);
         if (tIdx + 1 < tries.length){
-          thumb.dataset.try = tIdx + 1;
-          thumb.src = tries[tIdx + 1];
+          img.dataset.try = tIdx + 1;
+          img.src = tries[tIdx + 1];
           link.href = tries[tIdx + 1];
         } else {
-          thumb.classList.add('hidden');
-          link.parentElement.querySelector('.warn').classList.remove('hidden');
+          img.classList.add('hidden');
+          warnEl.classList.remove('hidden');
         }
       };
-      thumb.src = tries[0];
+      img.src = tries[0];
 
       // toggle de nota por card
-      const btn = link.parentElement.querySelector('.js-toggle-note');
-      if (btn){
+      const btn = meta.querySelector('.js-toggle-note');
+      if (btn && noteEl){
         btn.addEventListener('click', (e) => {
           e.preventDefault(); e.stopPropagation();
-          const note = card.querySelector('.note');
-          const open = note.style.display === 'block';
-          note.style.display = open ? 'none' : 'block';
+          const open = noteEl.style.display === 'block';
+          noteEl.style.display = open ? 'none' : 'block';
           btn.textContent = open ? 'ver nota' : 'ocultar nota';
         });
       }
 
       // aplica "mostrar notas automaticamente"
-      if (it.note && autoNotesEl.checked){
-        // espera o elemento existir no DOM
-        setTimeout(() => {
-          const note = card.querySelector('.note');
-          const btn2 = card.querySelector('.js-toggle-note');
-          if (note && btn2){ note.style.display = 'block'; btn2.textContent = 'ocultar nota'; }
-        }, 0);
+      if (noteEl && autoNotesEl.checked){
+        noteEl.style.display = 'block';
+        if (btn) btn.textContent = 'ocultar nota';
       }
-
-      grid.appendChild(card);
-      card.appendChild(link); // link por último para garantir ordem visual com .note
-      card.insertBefore(link, card.querySelector('.note')); // mantém note depois da meta
     }
   }
 

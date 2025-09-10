@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>CancerLab • Análise Inicial • NGS • 03.07.2025 </title>
+  <title>CancerLab • NGS • 03.07.2025</title>
   <meta name="description" content="Galeria profissional de resultados e figuras científicas." />
   <style>
     :root{
@@ -55,42 +55,28 @@
     .card:hover .thumb{transform:scale(1.03)}
     .meta{display:flex; justify-content:space-between; align-items:center; padding:12px 14px; color:var(--muted)}
     .title{color:var(--ink); font-weight:600}
-    .meta-right{display:flex; gap:8px; align-items:center}
     .tag{font-size:12px; padding:4px 8px; border-radius:999px; background:rgba(167,139,250,.12); color:#d3c5ff}
-    .btn-sm{font-size:12px; padding:4px 8px; border-radius:999px; border:1px solid rgba(255,255,255,.12); background:#161922; cursor:pointer}
-    .btn-sm:hover{border-color:rgba(110,231,255,.4)}
-    .note{
-      padding:12px 14px; color:var(--ink); background:linear-gradient(180deg,#121522,#0e1019);
-      border-top:1px dashed rgba(255,255,255,.08); display:none;
-    }
-    .note p{margin:0}
     footer{border-top:1px solid rgba(255,255,255,.06); color:var(--muted); padding:22px 0 40px}
     .hidden{display:none}
     .empty{padding:40px 0; color:var(--muted); text-align:center}
     .warn{padding:10px 12px; font-size:12px; color:#ffb4b4; border-top:1px dashed rgba(255,255,255,.1)}
-    .toggle-notes{display:flex; align-items:center; gap:8px; font-size:14px; color:var(--muted)}
-    .toggle-notes input{accent-color:#6ee7ff; width:18px; height:18px}
   </style>
 </head>
 <body>
 <header>
   <div class="wrap hero">
     <h1>CancerLab — NGS 03.07.2025</h1>
-    <div class="sub">Resultados selecionados (PCA, Heatmaps, Volcano, QC). Clique no card para abrir a imagem em nova aba. Use “ver nota” para explicações rápidas.</div>
+    <div class="sub">Resultados selecionados (PCA, Heatmaps, Volcano, QC). Clique no card para abrir a imagem em nova aba.</div>
     <div class="tools">
       <div class="search">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M21 21l-4.3-4.3M10.8 18.6a7.8 7.8 0 1 1 0-15.6 7.8 7.8 0 0 1 0 15.6z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
-        <input id="q" placeholder="Buscar por título, tag ou nota..." autocomplete="off">
+        <input id="q" placeholder="Buscar por título ou tag..." autocomplete="off">
       </div>
       <button class="chip" data-cat="all" data-active="true">Tudo</button>
       <button class="chip" data-cat="PCA">PCA</button>
       <button class="chip" data-cat="Heatmap">Heatmap</button>
       <button class="chip" data-cat="Volcano">Volcano</button>
       <button class="chip" data-cat="QC">QC</button>
-      <label class="toggle-notes">
-        <input type="checkbox" id="autoNotes">
-        Mostrar notas automaticamente
-      </label>
     </div>
   </div>
 </header>
@@ -101,30 +87,29 @@
 </main>
 
 <footer>
-  <div class="wrap">© <span id="y"></span> Brenno — apresentado via GitHub Pages</div>
+  <div class="wrap">© <span id="y"></span> brennovmh — apresentado via GitHub Pages</div>
 </footer>
 
 <script>
   // === LISTE SUAS IMAGENS EXATAMENTE COMO ESTÃO EM /gallery ===
   const ITEMS = [
-    {file:"MA.png",            title:"MA plot",        cat:"QC",      desc:"MA plot da amostra X", note:"Dispersão log-intensidade vs log-ratio. <br>Faixa central indica ausência de viés global."},
-    {file:"PCA.png",           title:"PCA",            cat:"PCA",     desc:"PCA com 48 amostras",  note:"PC1 separa Condição A vs B (~35% var.). PC2 correlaciona com batch."},
-    {file:"Rplot.png",         title:"Rplot",          cat:"QC",      desc:"Figura auxiliar",      note:"Plot auxiliar gerado pelo pipeline — inspecione outliers nos cantos."},
-    {file:"heatmap01.png",     title:"Heatmap 01",     cat:"Heatmap", desc:"Top genes variáveis",  note:"Clustering hierárquico (Pearson). Cores: z-score por gene."},
-    {file:"heatmap03.png",     title:"Heatmap 03",     cat:"Heatmap", desc:"Clusterização por condição", note:"Assinaturas claras por grupo experimental — ver blocos roxos (upregulated)."},
-    {file:"volcano_WTxT1.png", title:"Volcano WT×T1",  cat:"Volcano", desc:"DE: WT vs T1",         note:"Corte: |log2FC| ≥ 1 e FDR ≤ 0.05. Genes destacados: X, Y, Z."},
-    {file:"volcano_WTxT2.png", title:"Volcano WT×T2",  cat:"Volcano", desc:"DE: WT vs T2",         note:"Up em T2 concentra-se no quadrante superior direito."}
+    {file:"MA.png",            title:"MA plot",        cat:"QC",      desc:"MA plot da amostra X"},
+    {file:"PCA.png",           title:"PCA",            cat:"PCA",     desc:"PCA com 48 amostras"},
+    {file:"Rplot.png",         title:"Rplot",          cat:"QC",      desc:"Figura auxiliar"},
+    {file:"heatmap01.png",     title:"Heatmap 01",     cat:"Heatmap", desc:"Top genes variáveis"},
+    {file:"heatmap03.png",     title:"Heatmap 03",     cat:"Heatmap", desc:"Clusterização por condição"},
+    {file:"volcano_WTxT1.png", title:"Volcano WT×T1",  cat:"Volcano", desc:"DE: WT vs T1"},
+    {file:"volcano_WTxT2.png", title:"Volcano WT×T2",  cat:"Volcano", desc:"DE: WT vs T2"}
   ];
 
-  // altere se substituir imagens (para driblar cache CDN/navegador)
-  const VERSION = "v=7";
+  // troque se substituir imagens (para driblar cache)
+  const VERSION = "v=8";
 
   const yearEl = document.getElementById('y'); yearEl.textContent = new Date().getFullYear();
   const grid = document.getElementById('grid');
   const empty = document.getElementById('empty');
   const chips = [...document.querySelectorAll('.chip')];
   const q = document.getElementById('q');
-  const autoNotesEl = document.getElementById('autoNotes');
 
   let activeCat = 'all', term = '', visibleList = [];
 
@@ -142,8 +127,7 @@
     const t = term.trim().toLowerCase();
     visibleList = ITEMS.filter(it => {
       const inCat  = activeCat==='all' ? true : it.cat===activeCat;
-      const textBlob = (it.title + ' ' + (it.cat||'') + ' ' + (it.desc||'') + ' ' + (it.note||'')).toLowerCase();
-      const inText = !t || textBlob.includes(t);
+      const inText = !t || (it.title.toLowerCase().includes(t) || (it.cat||'').toLowerCase().includes(t) || (it.desc||'').toLowerCase().includes(t));
       return inCat && inText;
     });
 
@@ -152,16 +136,15 @@
     for (const it of visibleList){
       const orig = baseSrc(it.file);
 
+      // cria elementos
       const card = document.createElement('article');
       card.className = 'card';
 
-      // link que abre em nova aba SEM lightbox
       const link = document.createElement('a');
       link.href = withV(orig);
       link.target = "_blank";
       link.rel = "noopener";
 
-      // elementos internos
       const thumbWrap = document.createElement('div');
       thumbWrap.className = 'thumb-wrap';
 
@@ -170,8 +153,6 @@
       img.loading = 'lazy';
       img.alt = it.title;
 
-      thumbWrap.appendChild(img);
-
       const meta = document.createElement('div');
       meta.className = 'meta';
       meta.innerHTML = `
@@ -179,33 +160,22 @@
           <div class="title">${it.title}</div>
           <div style="font-size:12px;color:#7f8b98">${it.desc || ''}</div>
         </div>
-        <div class="meta-right">
-          ${it.note ? '<button type="button" class="btn-sm js-toggle-note">ver nota</button>' : ''}
-          <span class="tag">${it.cat || ''}</span>
-        </div>
+        <span class="tag">${it.cat || ''}</span>
       `;
 
       const warnEl = document.createElement('div');
       warnEl.className = 'warn hidden';
       warnEl.innerHTML = `Não encontrei <code>gallery/${it.file}</code> (tentei variações). Verifique nome/caixa.`;
 
-      // nota (explicação)
-      let noteEl = null;
-      if (it.note){
-        noteEl = document.createElement('div');
-        noteEl.className = 'note';
-        noteEl.innerHTML = `<p>${it.note}</p>`;
-      }
-
-      // Monta a hierarquia no DOM antes de configurar onerror
+      // monta DOM
+      thumbWrap.appendChild(img);
       link.appendChild(thumbWrap);
       link.appendChild(meta);
       card.appendChild(link);
       card.appendChild(warnEl);
-      if (noteEl) card.appendChild(noteEl);
       grid.appendChild(card);
 
-      // handler de erro AGORA que está tudo no DOM
+      // pipeline de tentativas DEPOIS de inserir no DOM
       const tries = [withV(orig), withRaw(orig), withV(baseSrc(flipExt(it.file)))];
       img.dataset.try = 0;
       img.onerror = () => {
@@ -213,30 +183,13 @@
         if (tIdx + 1 < tries.length){
           img.dataset.try = tIdx + 1;
           img.src = tries[tIdx + 1];
-          link.href = tries[tIdx + 1];
+          link.href = tries[tIdx + 1]; // mantém o "Abrir" consistente
         } else {
           img.classList.add('hidden');
           warnEl.classList.remove('hidden');
         }
       };
       img.src = tries[0];
-
-      // toggle de nota por card
-      const btn = meta.querySelector('.js-toggle-note');
-      if (btn && noteEl){
-        btn.addEventListener('click', (e) => {
-          e.preventDefault(); e.stopPropagation();
-          const open = noteEl.style.display === 'block';
-          noteEl.style.display = open ? 'none' : 'block';
-          btn.textContent = open ? 'ver nota' : 'ocultar nota';
-        });
-      }
-
-      // aplica "mostrar notas automaticamente"
-      if (noteEl && autoNotesEl.checked){
-        noteEl.style.display = 'block';
-        if (btn) btn.textContent = 'ocultar nota';
-      }
     }
   }
 
@@ -248,7 +201,6 @@
 
   chips.forEach(c => c.addEventListener('click', () => setCat(c.dataset.cat)));
   q.addEventListener('input', e => { term = e.target.value; render(); });
-  autoNotesEl.addEventListener('change', render);
 
   render();
 </script>

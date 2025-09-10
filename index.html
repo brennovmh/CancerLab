@@ -60,6 +60,7 @@
     .hidden{display:none}
     .empty{padding:40px 0; color:var(--muted); text-align:center}
     .warn{padding:10px 12px; font-size:12px; color:#ffb4b4; border-top:1px dashed rgba(255,255,255,.1)}
+    /* Lightbox inline styles aplicados no HTML */
   </style>
 </head>
 <body>
@@ -93,21 +94,20 @@
 <!-- LIGHTBOX -->
 <div id="lightbox" class="hidden" role="dialog" aria-modal="true" aria-label="Visualização da imagem"
      style="position:fixed; inset:0; background:rgba(0,0,0,.85); display:flex; align-items:center; justify-content:center; z-index:100;">
-  <button class="btn" id="lbClose" style="position:fixed; top:14px; right:14px">Fechar ✕</button>
+  <button class="chip" id="lbClose" style="position:fixed; top:14px; right:14px">Fechar ✕</button>
   <img id="lbImg" alt="" style="max-width:92vw; max-height:86vh; border-radius:12px; box-shadow:0 20px 60px rgba(0,0,0,.6)">
   <div class="lb-ui" style="position:fixed; left:50%; transform:translateX(-50%); bottom:22px; display:flex; gap:10px">
-    <button class="btn" id="lbPrev">← Anterior</button>
-    <a class="btn" id="lbDownload" download>⬇ Baixar</a>
-    <button class="btn" id="lbNext">Próxima →</button>
+    <button class="chip" id="lbPrev">← Anterior</button>
+    <a class="chip" id="lbDownload" download>⬇ Baixar</a>
+    <button class="chip" id="lbNext">Próxima →</button>
   </div>
 </div>
 
 <script>
   // === LISTE SUAS IMAGENS EXATAMENTE COMO ESTÃO EM /gallery ===
-  // Atualizado para corresponder à sua lista:
   const ITEMS = [
     {file:"MA.png",            title:"MA plot",        cat:"QC",      desc:"MA plot da amostra X"},
-    {file:"PCA.png",           title:"PCA",            cat:"PCA",     desc:"PCA com 6 amostras"},
+    {file:"PCA.png",           title:"PCA",            cat:"PCA",     desc:"PCA com 48 amostras"},
     {file:"Rplot.png",         title:"Rplot",          cat:"QC",      desc:"Figura auxiliar"},
     {file:"heatmap01.png",     title:"Heatmap 01",     cat:"Heatmap", desc:"Top genes variáveis"},
     {file:"heatmap03.png",     title:"Heatmap 03",     cat:"Heatmap", desc:"Clusterização por condição"},
@@ -115,8 +115,8 @@
     {file:"volcano_WTxT2.png", title:"Volcano WT×T2",  cat:"Volcano", desc:"DE: WT vs T2"}
   ];
 
-  // Cache-busting simples: altere o valor de VERSION se substituir imagens.
-  const VERSION = "v=1";
+  // mude este valor se substituir imagens (ajuda a driblar cache)
+  const VERSION = "v=3";
 
   const yearEl = document.getElementById('y'); yearEl.textContent = new Date().getFullYear();
   const grid = document.getElementById('grid');
@@ -125,6 +125,15 @@
   const q = document.getElementById('q');
 
   let activeCat = 'all', term = '', current = -1, visibleList = [];
+
+  function baseSrc(file){ return `./gallery/${file}`; }
+  function withV(src){ return `${src}?${VERSION}`; }
+  function withRaw(src){ return `${src}?raw=1&${VERSION}`; }
+  function flipExt(file){
+    if (file.endsWith('.png')) return file.replace(/\.png$/i, '.PNG');
+    if (file.endsWith('.PNG')) return file.replace(/\.PNG$/i, '.png');
+    return file;
+  }
 
   function render(){
     grid.innerHTML = '';
@@ -138,27 +147,44 @@
     empty.classList.toggle('hidden', visibleList.length>0);
 
     for (const [i, it] of visibleList.entries()){
-      const imgSrc = `./gallery/${it.file}?${VERSION}`;
+      const orig = baseSrc(it.file);
       const card = document.createElement('article');
       card.className = 'card';
       card.innerHTML = `
         <div class="thumb-wrap">
-          <img class="thumb" loading="lazy" src="${imgSrc}" alt="${it.title}">
+          <img class="thumb" loading="lazy" alt="${it.title}">
         </div>
         <div class="meta">
           <div>
             <div class="title">${it.title}</div>
             <div style="font-size:12px;color:#7f8b98">${it.desc||''}</div>
           </div>
-          <div class="tag">${it.cat||''}</div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <a class="tag" href="${withV(orig)}" target="_blank" rel="noopener">Abrir</a>
+            <span class="tag">${it.cat||''}</span>
+          </div>
         </div>
-        <div class="warn hidden">Não encontrei <code>gallery/${it.file}</code>. Verifique nome/caixa.</div>
+        <div class="warn hidden">Não encontrei <code>gallery/${it.file}</code> (tentei variações). Verifique nome/caixa.</div>
       `;
+
       const thumb = card.querySelector('img.thumb');
-      thumb.onerror = () => { thumb.classList.add('hidden'); card.querySelector('.warn').classList.remove('hidden'); };
+      // Pipeline de tentativas: ?v → ?raw=1 → flip de extensão (.png⇄.PNG)
+      const tries = [withV(orig), withRaw(orig), withV(baseSrc(flipExt(it.file)))];
+      thumb.dataset.try = 0;
+      thumb.onerror = () => {
+        const tIdx = parseInt(thumb.dataset.try,10);
+        if (tIdx + 1 < tries.length){
+          thumb.dataset.try = tIdx + 1;
+          thumb.src = tries[tIdx + 1];
+        } else {
+          thumb.classList.add('hidden');
+          card.querySelector('.warn').classList.remove('hidden');
+        }
+      };
+      thumb.src = tries[0];
+
       card.addEventListener('click', (e) => {
-        // Evita abrir lightbox ao clicar no aviso
-        if (e.target.closest('.warn')) return;
+        if (e.target.closest('.warn') || e.target.closest('a.tag')) return; // não abrir LB se clicou no aviso/abrir
         openLightbox(i);
       });
       grid.appendChild(card);
@@ -174,7 +200,7 @@
   chips.forEach(c => c.addEventListener('click', () => setCat(c.dataset.cat)));
   q.addEventListener('input', e => { term = e.target.value; render(); });
 
-  // Lightbox
+  // LIGHTBOX (usa fetch sem cache para evitar arquivo truncado)
   const lb = document.getElementById('lightbox');
   const lbImg = document.getElementById('lbImg');
   const lbDl = document.getElementById('lbDownload');
@@ -189,16 +215,36 @@
   });
   lb.addEventListener('click', e => { if (e.target===lb) closeLightbox(); });
 
-  function openLightbox(i){
+  async function openLightbox(i){
     current = i;
     const it = visibleList[i];
-    const src = `./gallery/${it.file}?${VERSION}`;
-    lbImg.src = src;
+    const candidates = [withV(baseSrc(it.file)), withRaw(baseSrc(it.file)), withV(baseSrc(flipExt(it.file)))];
+
+    let ok = false, href = '';
+    for (const url of candidates){
+      try{
+        const res = await fetch(url, { cache: 'no-store' });
+        if (!res.ok) continue;
+        const blob = await res.blob();
+        if (blob.size < 50) continue; // pointer/truncado
+        href = URL.createObjectURL(blob);
+        ok = true;
+        break;
+      }catch(e){}
+    }
+
+    if (!ok){
+      alert(`Não foi possível carregar ${it.file}. Verifique nome/caixa ou reenvie o arquivo.`);
+      return;
+    }
+
+    lbImg.src = href;
     lbImg.alt = it.title;
-    lbDl.href = src;
+    lbDl.href = withV(baseSrc(it.file)); // download aponta para o arquivo real (com cache-buster)
     lbDl.download = it.file;
     lb.classList.remove('hidden');
   }
+
   function closeLightbox(){ lb.classList.add('hidden'); lbImg.src=''; }
   function move(dir){
     if (visibleList.length===0) return;

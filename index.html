@@ -57,23 +57,9 @@
     .title{color:var(--ink); font-weight:600}
     .tag{font-size:12px; padding:4px 8px; border-radius:999px; background:rgba(167,139,250,.12); color:#d3c5ff}
     footer{border-top:1px solid rgba(255,255,255,.06); color:var(--muted); padding:22px 0 40px}
-    /* Lightbox */
-    .lightbox{
-      position:fixed; inset:0; background:rgba(0,0,0,.85); display:none; align-items:center; justify-content:center; z-index:100;
-    }
-    .lightbox.open{display:flex}
-    .lightbox img{max-width:92vw; max-height:86vh; border-radius:12px; box-shadow:0 20px 60px rgba(0,0,0,.6)}
-    .lb-ui{
-      position:fixed; left:50%; transform:translateX(-50%); bottom:22px; display:flex; gap:10px
-    }
-    .btn{
-      padding:10px 12px; border-radius:10px; background:#131620; border:1px solid rgba(255,255,255,.1); color:var(--ink); cursor:pointer
-    }
-    .btn:hover{border-color:rgba(110,231,255,.4)}
-    .close{position:fixed; top:14px; right:14px}
     .hidden{display:none}
-    /* Empty state */
     .empty{padding:40px 0; color:var(--muted); text-align:center}
+    .warn{padding:10px 12px; font-size:12px; color:#ffb4b4; border-top:1px dashed rgba(255,255,255,.1)}
   </style>
 </head>
 <body>
@@ -105,10 +91,11 @@
 </footer>
 
 <!-- LIGHTBOX -->
-<div id="lightbox" class="lightbox" role="dialog" aria-modal="true" aria-label="Visualização da imagem">
-  <button class="btn close" id="lbClose">Fechar ✕</button>
-  <img id="lbImg" alt="">
-  <div class="lb-ui">
+<div id="lightbox" class="hidden" role="dialog" aria-modal="true" aria-label="Visualização da imagem"
+     style="position:fixed; inset:0; background:rgba(0,0,0,.85); display:flex; align-items:center; justify-content:center; z-index:100;">
+  <button class="btn" id="lbClose" style="position:fixed; top:14px; right:14px">Fechar ✕</button>
+  <img id="lbImg" alt="" style="max-width:92vw; max-height:86vh; border-radius:12px; box-shadow:0 20px 60px rgba(0,0,0,.6)">
+  <div class="lb-ui" style="position:fixed; left:50%; transform:translateX(-50%); bottom:22px; display:flex; gap:10px">
     <button class="btn" id="lbPrev">← Anterior</button>
     <a class="btn" id="lbDownload" download>⬇ Baixar</a>
     <button class="btn" id="lbNext">Próxima →</button>
@@ -116,18 +103,20 @@
 </div>
 
 <script>
-  // LISTE SUAS IMAGENS AQUI (arquivo, título, categoria, descrição opcional)
-  // Coloque os arquivos em /gallery. Evite LFS.
+  // === LISTE SUAS IMAGENS EXATAMENTE COMO ESTÃO EM /gallery ===
+  // Atualizado para corresponder à sua lista:
   const ITEMS = [
-    {file:"MA.png",          title:"MA plot",     cat:"QC",      desc:"MA plot da amostra X"},
-    {file:"PCA.png",         title:"PCA",         cat:"PCA",     desc:"PCA com 48 amostras"},
-    {file:"heatmap01.png",   title:"Heatmap 01",  cat:"Heatmap", desc:"Top genes variáveis"},
-    {file:"heatmap02.svg",   title:"Heatmap 02",  cat:"Heatmap", desc:"Clusterização por condição"},
-    {file:"volcano_WTxT1.png", title:"Volcano WT×T1", cat:"Volcano", desc:"DE: WT vs T1"},
-    {file:"volcano_WTxT2.png", title:"Volcano WT×T2", cat:"Volcano", desc:"DE: WT vs T2"},
-    // Adicione mais linhas conforme necessário:
-    // {file:"nome.ext", title:"Título", cat:"PCA|Heatmap|Volcano|QC", desc:"..."}
+    {file:"MA.png",            title:"MA plot",        cat:"QC",      desc:"MA plot da amostra X"},
+    {file:"PCA.png",           title:"PCA",            cat:"PCA",     desc:"PCA com 48 amostras"},
+    {file:"Rplot.png",         title:"Rplot",          cat:"QC",      desc:"Figura auxiliar"},
+    {file:"heatmap01.png",     title:"Heatmap 01",     cat:"Heatmap", desc:"Top genes variáveis"},
+    {file:"heatmap03.png",     title:"Heatmap 03",     cat:"Heatmap", desc:"Clusterização por condição"},
+    {file:"volcano_WTxT1.png", title:"Volcano WT×T1",  cat:"Volcano", desc:"DE: WT vs T1"},
+    {file:"volcano_WTxT2.png", title:"Volcano WT×T2",  cat:"Volcano", desc:"DE: WT vs T2"}
   ];
+
+  // Cache-busting simples: altere o valor de VERSION se substituir imagens.
+  const VERSION = "v=1";
 
   const yearEl = document.getElementById('y'); yearEl.textContent = new Date().getFullYear();
   const grid = document.getElementById('grid');
@@ -146,15 +135,15 @@
       return inCat && inText;
     });
 
-    if (visibleList.length===0){ empty.classList.remove('hidden'); return; }
-    empty.classList.add('hidden');
+    empty.classList.toggle('hidden', visibleList.length>0);
 
     for (const [i, it] of visibleList.entries()){
+      const imgSrc = `./gallery/${it.file}?${VERSION}`;
       const card = document.createElement('article');
       card.className = 'card';
       card.innerHTML = `
         <div class="thumb-wrap">
-          <img class="thumb" loading="lazy" src="./gallery/${it.file}" alt="${it.title}">
+          <img class="thumb" loading="lazy" src="${imgSrc}" alt="${it.title}">
         </div>
         <div class="meta">
           <div>
@@ -162,8 +151,16 @@
             <div style="font-size:12px;color:#7f8b98">${it.desc||''}</div>
           </div>
           <div class="tag">${it.cat||''}</div>
-        </div>`;
-      card.addEventListener('click', () => openLightbox(i));
+        </div>
+        <div class="warn hidden">Não encontrei <code>gallery/${it.file}</code>. Verifique nome/caixa.</div>
+      `;
+      const thumb = card.querySelector('img.thumb');
+      thumb.onerror = () => { thumb.classList.add('hidden'); card.querySelector('.warn').classList.remove('hidden'); };
+      card.addEventListener('click', (e) => {
+        // Evita abrir lightbox ao clicar no aviso
+        if (e.target.closest('.warn')) return;
+        openLightbox(i);
+      });
       grid.appendChild(card);
     }
   }
@@ -185,7 +182,7 @@
   document.getElementById('lbPrev').onclick = () => move(-1);
   document.getElementById('lbNext').onclick = () => move(+1);
   document.addEventListener('keydown', e => {
-    if (!lb.classList.contains('open')) return;
+    if (lb.classList.contains('hidden')) return;
     if (e.key==='Escape') closeLightbox();
     if (e.key==='ArrowLeft') move(-1);
     if (e.key==='ArrowRight') move(+1);
@@ -195,13 +192,14 @@
   function openLightbox(i){
     current = i;
     const it = visibleList[i];
-    lbImg.src = `./gallery/${it.file}`;
+    const src = `./gallery/${it.file}?${VERSION}`;
+    lbImg.src = src;
     lbImg.alt = it.title;
-    lbDl.href = `./gallery/${it.file}`;
+    lbDl.href = src;
     lbDl.download = it.file;
-    lb.classList.add('open');
+    lb.classList.remove('hidden');
   }
-  function closeLightbox(){ lb.classList.remove('open'); lbImg.src=''; }
+  function closeLightbox(){ lb.classList.add('hidden'); lbImg.src=''; }
   function move(dir){
     if (visibleList.length===0) return;
     current = (current + dir + visibleList.length) % visibleList.length;
